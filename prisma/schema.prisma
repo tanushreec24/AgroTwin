@@ -1,0 +1,221 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum GrowthStage {
+  Seedling
+  Vegetative
+  Budding
+  Flowering
+  Fruiting
+  Mature
+  Harvested
+}
+
+model Farm {
+  id           String             @id @default(cuid())
+  name         String
+  state        String?
+  district     String?
+  createdAt    DateTime           @default(now())
+  updateAt     DateTime           @updatedAt
+  actual       ActualGrid[]
+  experimental ExperimentalGrid[]
+  plots        Plot[]
+  sensors      Sensor[]
+  actions      Action[]
+  recommendations Recommendation[]
+
+  @@unique([name, state, district])
+}
+
+model ActualGrid {
+  id            String      @id @default(cuid())
+  farm          Farm        @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  farmId        String
+  row           Int
+  column        Int
+  cropType      String
+  cropCount     Int
+  waterLevel    Float
+  moistureLevel Float
+  growthStage   GrowthStage
+  createdAt     DateTime    @default(now())
+  updateAt      DateTime    @updatedAt
+
+  @@unique([farmId, row, column])
+}
+
+model ExperimentalGrid {
+  id            String       @id @default(cuid())
+  farm          Farm         @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  farmId        String
+  row           Int
+  column        Int
+  cropType      String?
+  cropCount     Int?
+  waterLevel    Float?
+  moistureLevel Float?
+  growthStage   GrowthStage?
+  createdAt     DateTime     @default(now())
+  updateAt      DateTime     @updatedAt
+
+  @@unique([farmId, row, column])
+}
+
+/// Crop metadata (species, variety, etc.)
+model Crop {
+  id          String   @id @default(cuid())
+  name        String
+  commonName  String?   // Farmer-friendly name (optional for migration)
+  variety     String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  plots       Plot[]
+
+  @@unique([commonName])
+}
+
+/// Generalized plot (can be grid or geo-based)
+model Plot {
+  id          String   @id @default(cuid())
+  farm        Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  farmId      String
+  crop        Crop?    @relation(fields: [cropId], references: [id])
+  cropId      String?
+  row         Int?
+  column      Int?
+  latitude    Float?
+  longitude   Float?
+  areaSqM     Float?
+  soilType    String?  // Manual/External soil type (e.g., "loam", "clay", etc.)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  sensors     Sensor[]
+  readings    SensorReading[]
+  actions     Action[]
+  recommendations Recommendation[]
+  predictions Prediction[]
+
+  @@index([farmId])
+}
+
+enum SensorType {
+  Temperature
+  Humidity
+  Rainfall
+  SolarRadiation
+  WindSpeed
+  WindDirection
+  SoilMoisture
+  SoilN
+  SoilP
+  SoilK
+  SoilPH
+  SoilEC
+  Chlorophyll
+  LeafAreaIndex
+  PestPresence
+  DiseasePresence
+  YieldEstimate
+  Custom
+}
+
+model Sensor {
+  id          String     @id @default(cuid())
+  type        SensorType
+  name        String
+  plot        Plot?      @relation(fields: [plotId], references: [id])
+  plotId      String?
+  farm        Farm?      @relation(fields: [farmId], references: [id])
+  farmId      String?
+  location    String?
+  installedAt DateTime   @default(now())
+  readings    SensorReading[]
+
+  @@index([plotId])
+  @@index([farmId])
+  @@unique([plotId, type], name: "plotId_type")
+}
+
+model SensorReading {
+  id        String   @id @default(cuid())
+  sensor    Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+  sensorId  String
+  plot      Plot?    @relation(fields: [plotId], references: [id])
+  plotId    String?
+  value     Float
+  timestamp DateTime @default(now())
+
+  @@index([sensorId])
+  @@index([plotId])
+  @@index([timestamp])
+}
+
+enum ActionType {
+  Irrigation
+  Fertilization
+  Pesticide
+  Planting
+  Harvesting
+  Tillage
+  Custom
+}
+
+model Action {
+  id          String     @id @default(cuid())
+  plot        Plot       @relation(fields: [plotId], references: [id])
+  plotId      String
+  type        ActionType
+  description String?
+  performedBy String?
+  performedAt DateTime   @default(now())
+  farm        Farm?      @relation(fields: [farmId], references: [id])
+  farmId      String?
+
+  @@unique([plotId, type], name: "plotId_type")
+}
+
+enum RecommendationStatus {
+  Pending
+  Accepted
+  Rejected
+  Executed
+}
+
+model Recommendation {
+  id          String                 @id @default(cuid())
+  plot        Plot                   @relation(fields: [plotId], references: [id])
+  plotId      String
+  actionType  ActionType
+  details     String
+  status      RecommendationStatus   @default(Pending)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  feedback    String?
+  farm        Farm?                  @relation(fields: [farmId], references: [id])
+  farmId      String?
+
+  @@unique([plotId, actionType], name: "plotId_actionType")
+}
+
+model Prediction {
+  id          String   @id @default(cuid())
+  plot        Plot     @relation(fields: [plotId], references: [id])
+  plotId      String
+  type        String   // 'yield' or 'irrigation' (or other future types)
+  input       Json     // All input values used for prediction
+  result      Float    // The predicted value
+  confidence  Float?   // Optional confidence score
+  createdAt   DateTime @default(now())
+
+  @@index([plotId])
+  @@index([type])
+}
