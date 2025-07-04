@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ![FarmSimulation](https://github.com/user-attachments/assets/996987a5-3fa1-4150-8703-a7a9ee787588)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
@@ -58,3 +59,7 @@ https://github.com/user-attachments/assets/50b5cc8e-c124-45c7-aab3-7599e8c285ba
 ---
 
 **Empowering Farmers Through AI Innovation** 🌱🚜💡
+=======
+# farmsimulation
+ill update 
+>>>>>>> 35f421629c3cc33b0778fcf0df7c28a822e68099
