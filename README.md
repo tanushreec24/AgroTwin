@@ -1,4 +1,4 @@
-# 🌾 Digital Twin Farm Management System
+# 🌾 AgroTwin- A Digital Twin Farm Management System
 
 A modern, full-stack **Farm Management System** integrating a **Digital Twin** of the farm environment and **ML-powered predictions** to support data-driven agricultural decisions.
 
